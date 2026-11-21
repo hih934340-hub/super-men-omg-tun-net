@@ -11,6 +11,7 @@ const TelegramBot = require('node-telegram-bot-api');
 // ============================================================
 // CONFIG
 // ============================================================
+// ✅ ĐÃ CẬP NHẬT TOKEN MỚI CỦA BẠN
 const BOT_TOKEN   = process.env.TELEGRAM_TOKEN || '9027713238:AAHUWF-FR5w0lfKpOOCMMJ14_5yRM3lWv2c';
 const ADMIN_ID    = process.env.ADMIN_ID ? Number(process.env.ADMIN_ID) : 7757046138;
 const ADMIN_USER  = (process.env.ADMIN_USER || 'tranhoang2286').toLowerCase();
@@ -47,6 +48,14 @@ const ACTIVATE_FAILS        = new Map();
 
 const PREDICT_CACHE_MS      = 3_000;
 const PREDICT_CACHE         = new Map();
+
+// Bắt lỗi toàn cục để bot không bị crash
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️ Unhandled Rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('⚠️ Uncaught Exception:', err.message);
+});
 
 // ============================================================
 // GAME API MAP — ĐỦ 4 GAME × 2 TYPE
@@ -168,7 +177,7 @@ function normalizePred(p) {
 }
 
 // ============================================================
-// RATE LIMIT
+// RATE LIMIT & CIRCUIT BREAKER
 // ============================================================
 const RL = new Map();
 function rateLimit(ip) {
@@ -180,9 +189,6 @@ function rateLimit(ip) {
   return rec.count <= RATE_LIMIT_MAX;
 }
 
-// ============================================================
-// CIRCUIT BREAKER
-// ============================================================
 const CIRCUIT = new Map();
 function circuitCheck(id) {
   const c = CIRCUIT.get(id);
@@ -274,16 +280,39 @@ function transformPrediction(raw, gameId) {
 }
 
 // ============================================================
-// BOT TELEGRAM
+// BOT TELEGRAM (ĐÃ FIX LỖI WEBHOOK)
 // ============================================================
 let bot = null;
-if (BOT_TOKEN && BOT_TOKEN.includes(':')) {
+async function initBot() {
+  if (!BOT_TOKEN || !BOT_TOKEN.includes(':')) {
+    console.log('⚠️ Bỏ qua Bot Telegram: Token không hợp lệ hoặc rỗng.');
+    return;
+  }
+
   try {
-    bot = new TelegramBot(BOT_TOKEN, { polling: true });
-    bot.on('polling_error', e => console.error('Polling error:', e.message));
-    console.log('🤖 Bot started');
+    // 1. Tạo instance bot tạm để xóa Webhook cũ (Fix lỗi kẹt webhook)
+    console.log('🔄 Đang kiểm tra và xóa Webhook cũ (nếu có)...');
+    const tempBot = new TelegramBot(BOT_TOKEN, { polling: false });
+    await tempBot.deleteWebHook().catch(() => {});
+    
+    // 2. Khởi tạo bot với Polling
+    bot = new TelegramBot(BOT_TOKEN, { polling: { interval: 1000, autoStart: true } });
+    
+    bot.on('polling_error', (e) => {
+      console.error('❌ Bot Polling Error:', e.message);
+    });
+    
+    bot.on('webhook_error', (e) => {
+      console.error('❌ Bot Webhook Error:', e.message);
+    });
+
+    bot.onText(/\/start/, (msg) => {
+      bot.sendMessage(msg.chat.id, `👋 Chào mừng bạn đến với KAIRO TOOL!\n\n🆔 ID của bạn: \`${msg.from.id}\``, { parse_mode: 'Markdown' });
+    });
+
+    console.log('✅ Bot Telegram đã khởi động thành công!');
   } catch (e) {
-    console.error('Bot init failed:', e.message);
+    console.error('❌ Lỗi khởi tạo Bot:', e.message);
   }
 }
 
@@ -463,9 +492,10 @@ app.get('/kho.html', (req, res) => res.sendFile(path.join(__dirname, 'kho.html')
 (async () => {
   try {
     await initDB();
-    app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`));
+    await initBot(); // Khởi động Bot sau khi DB xong
+    app.listen(PORT, () => console.log(`🚀 Server đang chạy trên port ${PORT}`));
   } catch (e) {
-    console.error('Fatal startup error:', e.message);
+    console.error('❌ Lỗi khởi động nghiêm trọng:', e.message);
     process.exit(1);
   }
 })();
