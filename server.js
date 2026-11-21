@@ -20,10 +20,10 @@ const BANK_CODE   = 'BIDV';
 const BANK_ACC    = '96247V4IWI';
 const BANK_HOLDER = 'TRAN NHAT HOANG';
 
-// ✅ API BANK MỚI
+// ✅ API BANK MỚI (GIỮ NGUYÊN)
 const API_BANK = 'https://api-nganhang.onrender.com/lich-su';
 
-// ✅ HOST API GAME MỚI
+// ✅ HOST API GAME MỚI (ĐÃ THAY ĐỔI THEO YÊU CẦU)
 const GAME_API_HOST = 'https://fictional-happiness-betf.onrender.com';
 
 const PORT     = process.env.PORT || 8000;
@@ -52,19 +52,19 @@ process.on('unhandledRejection', (reason) => console.error('⚠️ Unhandled Rej
 process.on('uncaughtException', (err) => console.error('⚠️ Uncaught Exception:', err.message));
 
 // ============================================================
-// GAME API MAP
+// GAME API MAP (CHỈ THAY ĐỔI PHẦN NÀY)
 // ============================================================
 const API_GAME_RAW = {
-  lc79_md5:    `${GAME_API_HOST}/json-predict/lc79/md5`,
-  lc79_hu:     `${GAME_API_HOST}/json-predict/lc79/hu`,
-  betvip_md5:  `${GAME_API_HOST}/json-predict/betvip/md5`,
-  betvip_hu:   `${GAME_API_HOST}/json-predict/betvip/hu`,
-  hitclub_md5: `${GAME_API_HOST}/json-predict/hitclub/md5`,
-  hitclub_hu:  `${GAME_API_HOST}/json-predict/hitclub/hu`,
-  b52_md5:     `${GAME_API_HOST}/json-predict/b52/md5`,
-  b52_hu:      `${GAME_API_HOST}/json-predict/b52/hu`,
-  luckywin:    `${GAME_API_HOST}/json-predict/sicbo/luckywin`,
-  sumclub:     `${GAME_API_HOST}/json-predict/sicbo/sumclub`,
+  lc79_md5:    `${GAME_API_HOST}/api/predict/lc79/md5`,
+  lc79_hu:     `${GAME_API_HOST}/api/predict/lc79/hu`,
+  betvip_md5:  `${GAME_API_HOST}/api/predict/betvip/md5`,
+  betvip_hu:   `${GAME_API_HOST}/api/predict/betvip/hu`,
+  hitclub_md5: `${GAME_API_HOST}/api/predict/hitclub/md5`,
+  hitclub_hu:  `${GAME_API_HOST}/api/predict/hitclub/hu`,
+  b52_md5:     `${GAME_API_HOST}/api/predict/b52/md5`,
+  b52_hu:      `${GAME_API_HOST}/api/predict/b52/hu`,
+  luckywin:    `${GAME_API_HOST}/api/predict/sicbo/luckywin`,
+  sumclub:     `${GAME_API_HOST}/api/predict/sicbo/sumclub`,
 };
 
 const GAME_TYPE = {
@@ -98,7 +98,7 @@ const GAME_META = {
 };
 
 // ============================================================
-// DATABASE
+// DATABASE (GIỮ NGUYÊN)
 // ============================================================
 const pool = DATABASE_URL
   ? new Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false }, max: 10 })
@@ -139,9 +139,9 @@ async function initDB() {
 }
 
 // ============================================================
-// UTILS
+// UTILS (GIỮ NGUYÊN)
 // ============================================================
-function nowMs() { return Date.now(); } // Dùng mili-giây đồng bộ toàn hệ thống
+function nowMs() { return Date.now(); }
 
 function genKey(plan) {
   const pref = { '1d': 'HT1D', '4d': 'HT4D', '1w': 'HT1W', '1m': 'HT1M', '3m': 'HT3M', 'life': 'HTLIFE' }[plan] || 'HTX';
@@ -168,7 +168,7 @@ function normalizePred(p) {
 }
 
 // ============================================================
-// TOKEN & RATE LIMIT
+// TOKEN & RATE LIMIT (GIỮ NGUYÊN)
 // ============================================================
 const RATE_BUCKETS = new Map();
 function clientIp(req) { return req.ip || req.socket.remoteAddress || 'unknown'; }
@@ -265,7 +265,7 @@ async function fetchGameApi(gameId) {
 }
 
 // ============================================================
-// EXPRESS APP
+// EXPRESS APP (GIỮ NGUYÊN)
 // ============================================================
 const app = express();
 app.disable('x-powered-by');
@@ -285,7 +285,7 @@ app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.ht
 app.get('/kho.html', (req, res) => res.sendFile(path.join(__dirname, 'kho.html')));
 
 // ============================================================
-// MIDDLEWARES
+// MIDDLEWARES (GIỮ NGUYÊN)
 // ============================================================
 async function requireValidKey(req, res, next) {
   try {
@@ -317,7 +317,7 @@ async function requireValidKey(req, res, next) {
 }
 
 // ============================================================
-// API ROUTES
+// API ROUTES (CHỈ THAY ĐỔI PHẦN /api/predict)
 // ============================================================
 app.get('/api/key/verify', rateLimit(), requireValidKey, (req, res) => {
   res.json({ ok: true, plan: req.keyRow.plan, expires_at: req.keyRow.expires_at });
@@ -348,24 +348,36 @@ app.get('/api/predict/:token', rateLimit(), requireValidKey, async (req, res) =>
     let data = {};
 
     if (type === 'md5hu') {
-      const phien = String(raw.phien_hien_tai || '');
-      const du_doan = String(raw.du_doan || '').toUpperCase();
-      const tin_cay = parseInt(raw.do_tin_cay, 10) || 50;
+      // Xử lý đúng cấu trúc JSON của API mới (dữ liệu phẳng)
+      const phien = String(raw.phien || raw.phien_hien_tai || '');
+      const du_doan = String(raw.du_doan || raw.ketQua || '').toUpperCase();
+      const tin_cay = parseInt(raw.do_tin_cay || raw.doTinCay || raw.tiLe, 10) || 50;
+      
       const historyArr = [];
-      if (Array.isArray(raw.lossHistory)) for (const h of raw.lossHistory) historyArr.push({ phien: h.phien, du_doan: h.predicted, ket_qua: h.actual, danh_gia: 'LOSE' });
-      if (Array.isArray(raw.winHistory)) for (const h of raw.winHistory) historyArr.push({ phien: h.phien, du_doan: h.predicted, ket_qua: h.actual, danh_gia: 'WIN' });
+      if (Array.isArray(raw.lossHistory)) {
+        for (const h of raw.lossHistory) historyArr.push({ phien: h.phien, du_doan: h.predicted || h.du_doan, ket_qua: h.actual || h.ket_qua, danh_gia: 'LOSE' });
+      }
+      if (Array.isArray(raw.winHistory)) {
+        for (const h of raw.winHistory) historyArr.push({ phien: h.phien, du_doan: h.predicted || h.du_doan, ket_qua: h.actual || h.ket_qua, danh_gia: 'WIN' });
+      }
+      if (historyArr.length === 0 && Array.isArray(raw.history)) {
+         historyArr.push(...raw.history);
+      }
+
       historyArr.sort((a, b) => parseInt(b.phien, 10) - parseInt(a.phien, 10));
       data = { phien, du_doan, tin_cay, history: historyArr.slice(0, 20) };
     } else {
-      const history = Array.isArray(raw) ? raw : (raw.data || []);
+      // Xử lý cho Sicbo
+      const history = Array.isArray(raw) ? raw : (raw.data || raw.history || []);
       if (!history.length) throw new Error('Rỗng');
-      const phien = String(history[0].gameNum || '');
+      const phien = String(history[0].gameNum || history[0].phien || '');
       const pred = predictSicbo(history, phien);
       data = { phien, du_doan: pred.du_doan, tin_cay: pred.tin_cay, history };
     }
     PREDICT_CACHE.set(gameId, { data, at: nowMs() });
     res.json(data);
   } catch (e) {
+    console.error(`Lỗi API Game (${gameId}):`, e.message);
     res.json({ du_doan: 'BẢO TRÌ', tin_cay: 0, history: [] });
   }
 });
@@ -429,7 +441,7 @@ app.get('/api/bank/history', async (req, res) => {
 });
 
 // ============================================================
-// TELEGRAM BOT FULL ADMIN PANEL
+// TELEGRAM BOT FULL ADMIN PANEL (GIỮ NGUYÊN)
 // ============================================================
 let bot = null;
 if (BOT_TOKEN) {
@@ -725,7 +737,7 @@ if (bot) {
 }
 
 // ============================================================
-// START SERVER
+// START SERVER (GIỮ NGUYÊN)
 // ============================================================
 initDB()
   .then(() => {
