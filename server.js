@@ -282,7 +282,7 @@ app.use((req, res, next) => {
 app.get('/healthz', (_, res) => res.status(200).send('ok'));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/kho.html', (req, res) => res.sendFile(path.join(__dirname, 'kho.html')));
+app.get('/kho.html', (req, res) => res.sendFile(path.join(__dirname, 'cac2.html'))); // Sửa lại tên file nếu cần
 
 // ============================================================
 // MIDDLEWARES (GIỮ NGUYÊN)
@@ -348,37 +348,29 @@ app.get('/api/predict/:token', rateLimit(), requireValidKey, async (req, res) =>
     let data = {};
 
     if (type === 'md5hu') {
-      // Xử lý đúng cấu trúc JSON của API mới (dữ liệu phẳng)
-      const phien = String(raw.phien || raw.phien_hien_tai || '');
-      const du_doan = String(raw.du_doan || raw.ketQua || '').toUpperCase();
-      const tin_cay = parseInt(raw.do_tin_cay || raw.doTinCay || raw.tiLe, 10) || 50;
-      
-      const historyArr = [];
-      if (Array.isArray(raw.lossHistory)) {
-        for (const h of raw.lossHistory) historyArr.push({ phien: h.phien, du_doan: h.predicted || h.du_doan, ket_qua: h.actual || h.ket_qua, danh_gia: 'LOSE' });
-      }
-      if (Array.isArray(raw.winHistory)) {
-        for (const h of raw.winHistory) historyArr.push({ phien: h.phien, du_doan: h.predicted || h.du_doan, ket_qua: h.actual || h.ket_qua, danh_gia: 'WIN' });
-      }
-      if (historyArr.length === 0 && Array.isArray(raw.history)) {
-         historyArr.push(...raw.history);
-      }
-
-      historyArr.sort((a, b) => parseInt(b.phien, 10) - parseInt(a.phien, 10));
-      data = { phien, du_doan, tin_cay, history: historyArr.slice(0, 20) };
+      // ✅ FIX: Bóc tách chuẩn xác 100% các trường từ API gốc
+      data = {
+        phien: raw.phien || null,
+        ketQua: raw.ketQua || null,
+        tong: raw.tong || null,
+        phienDoan: raw.phienDoan || null,
+        duDoan: String(raw.duDoan || '').toUpperCase(), // Chỉ lấy duDoan, KHÔNG lấy ketQua
+        tiLe: raw.tiLe || '0%'
+      };
     } else {
-      // Xử lý cho Sicbo
+      // Xử lý cho Sicbo (giữ nguyên)
       const history = Array.isArray(raw) ? raw : (raw.data || raw.history || []);
       if (!history.length) throw new Error('Rỗng');
       const phien = String(history[0].gameNum || history[0].phien || '');
       const pred = predictSicbo(history, phien);
-      data = { phien, du_doan: pred.du_doan, tin_cay: pred.tin_cay, history };
+      data = { phien, phienDoan: phien + 1, duDoan: pred.du_doan, tiLe: pred.tin_cay + '%', ketQua: null, tong: null };
     }
+    
     PREDICT_CACHE.set(gameId, { data, at: nowMs() });
     res.json(data);
   } catch (e) {
     console.error(`Lỗi API Game (${gameId}):`, e.message);
-    res.json({ du_doan: 'BẢO TRÌ', tin_cay: 0, history: [] });
+    res.json({ phien: null, ketQua: null, tong: null, phienDoan: null, duDoan: 'BẢO TRÌ', tiLe: '0%' });
   }
 });
 
