@@ -592,6 +592,20 @@ function normalizePred(p) {
   return '';
 }
 
+function parseConfidence(raw) {
+  if (raw == null) return 0;
+  const num = parseFloat(String(raw).replace('%', '').trim());
+  if (!Number.isFinite(num)) return 0;
+  return Math.max(0, Math.min(100, Math.round(num)));
+}
+
+function extractPredPhien(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  const src = (obj.data && typeof obj.data === 'object') ? obj.data : obj;
+  const val = src.phien_du_doan ?? src.phienDuDoan ?? src.phien_phan_tich ?? src.phien ?? null;
+  return val != null && String(val).trim() !== '' ? String(val).trim() : null;
+}
+
 const ALLOWED_ICONS = new Set(['fa-gamepad','fa-dice','fa-coins','fa-crown','fa-fire','fa-trophy','fa-rocket','fa-shield-halved','fa-bolt','fa-star']);
 const safeIconClass = (i) => ALLOWED_ICONS.has(i) ? i : 'fa-gamepad';
 
@@ -818,11 +832,12 @@ async function fetchPredictionCircle() {
   try {
     const r = await authFetch('/api/predict/' + encodeURIComponent(currentToken), {}, { bypassGuard:true });
     const d = await r.json();
-    if (circleLastPhien !== null && d.phien !== circleLastPhien) {
+    const curPhien = extractPredPhien(d);
+    if (circleLastPhien !== null && curPhien !== null && curPhien !== circleLastPhien) {
       circleSpinning = true; $('circleWrap').classList.add('spinning'); $('toolPredText').textContent = '...'; $('toolRateText').textContent = 'Đang phân tích';
       setTimeout(() => { circleSpinning = false; $('circleWrap').classList.remove('spinning'); renderCircle(d); }, 1200);
     } else { renderCircle(d); }
-    circleLastPhien = d.phien;
+    circleLastPhien = curPhien;
   } catch (e) {
     if (e.name === 'AbortError') return; if ($('viewToolCircle').style.display === 'none') return;
     $('toolRateText').textContent = 'Đang kết nối lại...';
@@ -830,11 +845,12 @@ async function fetchPredictionCircle() {
 }
 
 function renderCircle(d) {
-  const pred = normalizePred(d.du_doan) || '--'; const conf = Math.max(0, Math.min(100, Number(d.tin_cay)||0));
+  const src = (d && d.data && typeof d.data === 'object') ? d.data : d;
+  const pred = normalizePred(src.du_doan) || '--'; const conf = parseConfidence(src.tin_cay ?? src.do_tin_cay);
   const predEl = $('toolPredText'); predEl.textContent = pred; predEl.className = 'pred-text' + (pred === 'XỈU' ? ' xiu' : '');
   $('toolRateText').textContent = conf + '%'; $('toolCircle').style.strokeDashoffset = String(CIRCLE_LEN - (CIRCLE_LEN*conf)/100);
 
-  saveCachedHistory(currentToken, d.history); const fullHistory = getCachedHistory(currentToken);
+  saveCachedHistory(currentToken, src.history); const fullHistory = getCachedHistory(currentToken);
   const tbody = $('historyBody'); tbody.textContent = '';
   fullHistory.forEach(item => {
     const tr = document.createElement('tr'); const normPred = normalizePred(item.du_doan);
@@ -884,9 +900,10 @@ async function fetchPredictionWidget() {
     let d;
     try { d = await r.json(); } catch(jsonErr) { throw new Error('INVALID_JSON'); }
 
-    const phienHienTai = d.phien_du_doan ?? d.phien_phan_tich ?? d.phien ?? null;
-    const pred = normalizePred(d.du_doan);
-    const conf = Math.max(0, Math.min(100, Number(d.tin_cay)||0));
+    const src = (d && d.data && typeof d.data === 'object') ? d.data : d;
+    const phienHienTai = extractPredPhien(d);
+    const pred = normalizePred(src.du_doan);
+    const conf = parseConfidence(src.tin_cay ?? src.do_tin_cay);
 
     if (phienHienTai != null && String(phienHienTai) !== String(widgetLastPhien)) {
       const el = $('wPhien');
