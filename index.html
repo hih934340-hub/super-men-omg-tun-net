@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>KAIRO🦁 — Hệ Thống Key</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Orbitron:wght@600;800;900&family=Inter:wght@400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root{
+  --bg1:#03050a; --bg2:#0a0f1c; --bg3:#0d1220;
+  --card:rgba(12,17,28,.72); --card-solid:#0c111c;
+  --border:rgba(120,180,255,.14); --border-hi:rgba(120,180,255,.35);
+  --text:#e8eefc; --muted:#8b98b5; --in-bg:rgba(255,255,255,.035); --in-bd:rgba(120,180,255,.18);
+  --acc:#3b82f6; --acc2:#8b5cf6; --acc3:#ec4899;
+  --ok:#22c55e; --err:#ef4444; --gold:#fbbf24; --cyan:#22d3ee;
+  --glow:0 0 40px rgba(59,130,246,.35);
+  --mono:'JetBrains Mono',monospace; --display:'Orbitron',sans-serif; --sans:'Inter',sans-serif; --hand:'Caveat',cursive;
+  --paper:#f5f0e1; --paper-line:rgba(70,130,200,.28); --paper-margin:rgba(220,60,60,.55); --ink:#1a2338; --ink-soft:#4a5570;
+}
+body.light{
+  --bg1:#eef3fb; --bg2:#dbe4f4; --bg3:#cdd8ec; --card:rgba(255,255,255,.8); --card-solid:#ffffff;
+  --border:rgba(30,60,120,.12); --border-hi:rgba(30,60,120,.3); --text:#0b1526; --muted:#4a5878;
+  --in-bg:rgba(0,0,0,.03); --in-bd:rgba(30,60,120,.15); --acc:#2563eb; --acc2:#7c3aed; --acc3:#db2777;
+  --glow:0 0 40px rgba(37,99,235,.25); --paper:#fffdf5; --paper-line:rgba(70,130,200,.32); --paper-margin:rgba(220,60,60,.6); --ink:#0b1526; --ink-soft:#4a5878;
+}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:linear-gradient(140deg,var(--bg1),var(--bg2) 60%,var(--bg3));color:var(--text);min-height:100vh;overflow-x:hidden;line-height:1.6;}
+#matrixCanvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55;} body.light #matrixCanvas{opacity:.28;}
+#gridCanvas{position:fixed;inset:0;z-index:1;pointer-events:none;mix-blend-mode:screen;} body.light #gridCanvas{mix-blend-mode:multiply;opacity:.9;}
+body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,.55) 100%);} body.light::after{background:radial-gradient(ellipse at center,transparent 40%,rgba(30,60,120,.15) 100%);}
+
+.theme-toggle{position:fixed;top:22px;right:22px;z-index:100;width:54px;height:54px;border-radius:50%;background:var(--card);backdrop-filter:blur(16px);border:1px solid var(--border);color:var(--text);font-size:1.35rem;cursor:pointer;display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.4);transition:.35s cubic-bezier(.34,1.56,.64,1);}
+.theme-toggle:hover{transform:rotate(20deg) scale(1.08);box-shadow:var(--glow);border-color:var(--border-hi);}
+.theme-toggle .fa-sun{display:none;} body.light .theme-toggle .fa-sun{display:block;} body.light .theme-toggle .fa-moon{display:none;}
+
+.navbar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:18px 32px;max-width:1400px;margin:0 auto;backdrop-filter:blur(10px);}
+.nav-logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:900;font-size:1.25rem;letter-spacing:2px;}
+.nav-logo .lion{font-size:1.6rem;filter:drop-shadow(0 0 12px rgba(251,191,36,.7));animation:lionPulse 2.6s ease-in-out infinite;}
+@keyframes lionPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+.nav-logo span{background:linear-gradient(90deg,#fbbf24,#3b82f6,#8b5cf6,#fbbf24);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:shine 5s linear infinite;}
+@keyframes shine{to{background-position:300% 0;}}
+.nav-links{display:flex;gap:26px;font-size:.9rem;font-weight:500;}
+.nav-links a{color:var(--muted);text-decoration:none;transition:.2s;position:relative;}
+.nav-links a:hover{color:var(--text);}
+.nav-links a::after{content:'';position:absolute;left:0;bottom:-4px;width:0;height:2px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:.3s;}
+.nav-links a:hover::after{width:100%;}
+@media(max-width:720px){.nav-links{display:none;}}
+
+.container{position:relative;z-index:10;max-width:1200px;margin:0 auto;padding:0 24px;}
+.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center;padding:60px 0 80px;min-height:calc(100vh - 90px);}
+@media(max-width:900px){.hero{grid-template-columns:1fr;padding:40px 0 60px;min-height:auto;gap:32px;}}
+
+.hero-left .tag{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:40px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:var(--acc);font-family:var(--mono);font-size:.78rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:20px;}
+.hero-left .tag .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+.hero-title{font-family:var(--display);font-weight:900;font-size:clamp(2.2rem,5vw,4rem);line-height:1.05;letter-spacing:1px;margin-bottom:20px;}
+.hero-title .grad{background:linear-gradient(90deg,#3b82f6,#8b5cf6,#ec4899,#22d3ee,#3b82f6);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:shine 6s linear infinite;filter:drop-shadow(0 0 22px rgba(139,92,246,.5));}
+.hero-title .lion-big{display:inline-block;filter:drop-shadow(0 0 24px rgba(251,191,36,.8));animation:lionPulse 2.6s ease-in-out infinite;}
+.hero-desc{color:var(--muted);font-size:1rem;max-width:520px;margin-bottom:28px;} .hero-desc b{color:var(--text);font-weight:600;}
+.hero-stats{display:flex;gap:32px;flex-wrap:wrap;margin-bottom:32px;font-family:var(--mono);}
+.hero-stats .stat .num{font-size:1.55rem;font-weight:800;color:var(--text);display:block;}
+.hero-stats .stat .lbl{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;}
+
+.btn{border:none;border-radius:14px;padding:15px 26px;font-size:.95rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;transition:.28s cubic-bezier(.34,1.56,.64,1);font-family:inherit;text-decoration:none;white-space:nowrap;}
+.btn-primary{background:linear-gradient(135deg,var(--acc),var(--acc2),var(--acc3));background-size:200% 200%;color:#fff;box-shadow:0 14px 34px -12px var(--acc);position:relative;overflow:hidden;}
+.btn-primary::before{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.25) 50%,transparent 70%);transform:translateX(-100%);transition:.6s;}
+.btn-primary:hover::before{transform:translateX(100%);}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 22px 44px -12px var(--acc);background-position:100% 50%;}
+.btn-primary:active{transform:scale(.97);}
+.btn-buy{background:linear-gradient(135deg,#0088cc,#229ED9);color:#fff;box-shadow:0 14px 34px -12px #229ED9;}
+.btn-buy:hover{transform:translateY(-3px);box-shadow:0 22px 44px -12px #229ED9;}
+.btn-buy .fa-telegram{font-size:1.15rem;}
+.btn-ghost{background:var(--in-bg);border:1px solid var(--in-bd);color:var(--text);}
+.btn-ghost:hover{border-color:var(--acc);color:var(--acc);transform:translateY(-2px);}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none!important;}
+
+.key-card{background:var(--card);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border:1px solid var(--border);border-radius:26px;padding:28px 26px 32px;position:relative;box-shadow:0 40px 80px -30px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.06);animation:cardIn .7s cubic-bezier(.34,1.56,.64,1);overflow:hidden;}
+@keyframes cardIn{from{opacity:0;transform:translateY(24px) scale(.97);}to{opacity:1;transform:none;}}
+.key-card::before{content:'';position:absolute;inset:-1px;border-radius:27px;background:linear-gradient(135deg,var(--acc),var(--acc2),var(--acc3),var(--cyan),var(--acc));background-size:300% 300%;z-index:-1;opacity:.4;animation:borderShine 8s linear infinite;filter:blur(1px);}
+@keyframes borderShine{to{background-position:300% 300%;}}
+.kc-head{text-align:center;margin-bottom:22px;}
+.kc-head .icon{width:64px;height:64px;margin:0 auto 14px;border-radius:20px;background:linear-gradient(135deg,#fbbf24,#ec4899);display:grid;place-items:center;font-size:1.7rem;color:#fff;box-shadow:0 14px 32px -10px #fbbf24;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+.kc-head h2{font-family:var(--display);font-size:1.25rem;font-weight:800;margin-bottom:4px;letter-spacing:1px;}
+.kc-head p{font-size:.85rem;color:var(--muted);}
+.notebook{position:relative;margin:6px 0 18px;perspective:1200px;}
+.notebook .spiral{position:absolute;left:-10px;top:6px;bottom:6px;width:24px;z-index:5;display:flex;flex-direction:column;justify-content:space-around;align-items:center;padding:6px 0;}
+.notebook .spiral .ring{width:18px;height:8px;border-radius:50%;background:linear-gradient(180deg,#c9c9c9,#7a7a7a);border:1px solid #555;box-shadow:inset 0 1px 2px rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.5);}
+.notebook .paper{position:relative;background:linear-gradient(180deg, rgba(255,255,255,.06), transparent 30%),var(--paper);border-radius:6px 14px 14px 6px;padding:26px 20px 26px 44px;box-shadow:0 20px 40px -20px rgba(0,0,0,.9),0 4px 10px rgba(0,0,0,.5),inset 0 0 0 1px rgba(0,0,0,.06);min-height:130px;overflow:hidden;background-image:linear-gradient(180deg, transparent calc(100% - 1px), var(--paper-line) calc(100% - 1px));background-size: 100% 30px;background-position: 0 28px;background-repeat: repeat-y;}
+.notebook .paper::before{content:'';position:absolute;top:0;bottom:0;left:32px;width:2px;background:var(--paper-margin);box-shadow:0 0 4px rgba(220,60,60,.4);opacity:.8;}
+.notebook .paper::after{content:'';position:absolute;bottom:0;right:0;width:0;height:0;border-style:solid;border-width:0 0 26px 26px;border-color:transparent transparent rgba(0,0,0,.14) transparent;filter:drop-shadow(-1px -1px 2px rgba(255,255,255,.5));}
+.notebook .paper .glow{position:absolute;top:-40%;right:-20%;width:60%;height:120%;background:radial-gradient(circle, rgba(255,220,140,.35), transparent 60%);pointer-events:none;opacity:.8;}
+.notebook .paper-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:6px;border-bottom:1px dashed var(--paper-line);}
+.notebook .paper-head .title{font-family:var(--hand);font-size:1.5rem;font-weight:700;color:var(--ink);transform:rotate(-1.5deg);}
+.notebook .paper-head .badge{font-family:var(--mono);font-size:.65rem;font-weight:800;color:var(--paper-margin);padding:3px 8px;border:1.5px solid var(--paper-margin);border-radius:4px;letter-spacing:1.5px;text-transform:uppercase;transform:rotate(3deg);opacity:.85;}
+.notebook .field{position:relative;display:flex;align-items:center;background:transparent;border:none;padding:0;margin:0;height:44px;}
+.notebook .field > i{color:var(--ink-soft);width:22px;font-size:1.05rem;transition:.2s;}
+.notebook .field:focus-within > i{ color:var(--paper-margin); transform:scale(1.15); }
+.notebook .field input{flex:1;background:transparent;border:none;outline:none;padding:6px 8px;font-family:var(--hand);font-size:1.55rem;font-weight:600;color:var(--ink);letter-spacing:2px;line-height:1;min-width:0;}
+.notebook .field input::placeholder{font-family:var(--hand);color:var(--ink-soft);opacity:.55;font-size:1.35rem;letter-spacing:1px;}
+.notebook .eye{background:rgba(0,0,0,.05);border:1px solid rgba(0,0,0,.1);color:var(--ink-soft);padding:6px 10px;cursor:pointer;border-radius:8px;font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:5px;transition:.2s;font-family:var(--sans);flex:0 0 auto;}
+.notebook .eye:hover{ background:var(--paper-margin);color:#fff;border-color:var(--paper-margin); }
+.notebook .footnote{margin-top:14px;text-align:right;font-family:var(--hand);font-size:1rem;color:var(--ink-soft);opacity:.75;transform:rotate(-1deg);}
+.btn-submit-outer{width:100%;margin-top:6px;}
+
+.msg{font-size:.85rem;padding:11px 14px;border-radius:10px;display:none;align-items:center;gap:8px;margin-bottom:14px;font-weight:500;}
+.msg.show{display:flex;}
+.msg.err{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.3);}
+.msg.ok{background:rgba(34,197,94,.12);color:#86efac;border:1px solid rgba(34,197,94,.3);}
+body.light .msg.err{color:#b91c1c;} body.light .msg.ok{color:#15803d;}
+.divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:.78rem;margin:16px 0;font-family:var(--mono);letter-spacing:1px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--in-bd),transparent);}
+.hint{font-size:.78rem;color:var(--muted);text-align:center;line-height:1.6;margin-top:10px;}
+.hint b{color:var(--acc);}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card-solid);backdrop-filter:blur(18px);border:1px solid var(--border-hi);color:var(--text);padding:14px 26px;border-radius:60px;font-weight:500;font-size:.9rem;display:flex;align-items:center;gap:10px;box-shadow:0 20px 50px -10px rgba(0,0,0,.7);opacity:0;transition:.45s cubic-bezier(.34,1.56,.64,1);z-index:999;pointer-events:none;max-width:90vw;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast i{font-size:1.15rem;}
+.spin{animation:sp 1s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+
+.section{padding:80px 0;position:relative;}
+.section-head{text-align:center;margin-bottom:56px;}
+.section-head .eyebrow{font-family:var(--mono);font-size:.8rem;color:var(--acc);text-transform:uppercase;letter-spacing:3px;margin-bottom:12px;font-weight:700;}
+.section-head h2{font-family:var(--display);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;letter-spacing:1px;margin-bottom:14px;}
+.section-head h2 .grad{background:linear-gradient(90deg,var(--acc),var(--acc2),var(--acc3));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.section-head p{color:var(--muted);max-width:600px;margin:0 auto;}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;}
+.feature{background:var(--card);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:20px;padding:28px 24px;transition:.35s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden;}
+.feature::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--acc),var(--acc2),transparent);transform:scaleX(0);transform-origin:left;transition:.4s;}
+.feature:hover{transform:translateY(-6px);border-color:var(--border-hi);box-shadow:0 30px 60px -25px rgba(59,130,246,.4);}
+.feature:hover::before{transform:scaleX(1);}
+.feature .f-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(139,92,246,.2));border:1px solid rgba(139,92,246,.3);display:grid;place-items:center;font-size:1.35rem;color:var(--acc);margin-bottom:18px;transition:.3s;}
+.feature:hover .f-icon{transform:scale(1.1) rotate(-5deg);box-shadow:0 10px 26px -8px var(--acc);color:#fff;background:linear-gradient(135deg,var(--acc),var(--acc2));}
+.feature h3{font-size:1.05rem;font-weight:700;margin-bottom:8px;}
+.feature p{font-size:.88rem;color:var(--muted);line-height:1.65;}
+.pricing{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;margin-top:12px;}
+.plan{background:var(--card);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:22px;padding:32px 26px;position:relative;transition:.35s cubic-bezier(.34,1.56,.64,1);display:flex;flex-direction:column;}
+.plan:hover{transform:translateY(-6px);border-color:var(--border-hi);box-shadow:0 30px 60px -25px rgba(139,92,246,.4);}
+.plan.featured{border-color:rgba(139,92,246,.5);background:linear-gradient(180deg,rgba(139,92,246,.12),var(--card));}
+.plan.featured::before{content:'PHỔ BIẾN';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--acc2),var(--acc3));color:#fff;font-size:.68rem;font-weight:800;padding:5px 14px;border-radius:20px;letter-spacing:1.5px;box-shadow:0 8px 20px -6px var(--acc2);}
+.plan-name{font-family:var(--display);font-size:.85rem;letter-spacing:2px;color:var(--acc);font-weight:700;margin-bottom:10px;text-transform:uppercase;}
+.plan-price{font-family:var(--display);font-size:2.2rem;font-weight:900;margin-bottom:6px;letter-spacing:1px;}
+.plan-price span{font-size:.85rem;color:var(--muted);font-family:var(--sans);font-weight:500;letter-spacing:0;}
+.plan-dur{font-size:.82rem;color:var(--muted);margin-bottom:20px;font-family:var(--mono);}
+.plan ul{list-style:none;margin-bottom:24px;flex:1;}
+.plan ul li{padding:7px 0;font-size:.88rem;color:var(--muted);display:flex;align-items:center;gap:10px;}
+.plan ul li i{color:var(--ok);font-size:.8rem;}
+.plan .btn{width:100%;}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px;counter-reset:step;}
+.step{background:var(--card);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:20px;padding:30px 24px;position:relative;transition:.3s;}
+.step:hover{transform:translateY(-4px);border-color:var(--border-hi);}
+.step::before{counter-increment:step;content:counter(step,decimal-leading-zero);position:absolute;top:14px;right:20px;font-family:var(--display);font-size:2.6rem;font-weight:900;color:rgba(139,92,246,.15);line-height:1;}
+.step .s-icon{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;color:#fff;font-size:1.1rem;margin-bottom:16px;box-shadow:0 10px 24px -8px var(--acc);}
+.step h3{font-size:1rem;margin-bottom:8px;}
+.step p{font-size:.85rem;color:var(--muted);}
+.faq{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
+.faq-item{background:var(--card);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:.3s;}
+.faq-item.open{border-color:var(--border-hi);}
+.faq-q{padding:18px 22px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:16px;font-weight:600;font-size:.95rem;transition:.2s;}
+.faq-q:hover{color:var(--acc);}
+.faq-q i{transition:.35s;color:var(--acc);}
+.faq-item.open .faq-q i{transform:rotate(180deg);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .45s cubic-bezier(.4,0,.2,1),padding .3s;padding:0 22px;color:var(--muted);font-size:.88rem;line-height:1.7;}
+.faq-item.open .faq-a{max-height:300px;padding:0 22px 20px;}
+.footer{position:relative;z-index:10;border-top:1px solid var(--border);padding:36px 24px;text-align:center;color:var(--muted);font-size:.85rem;margin-top:40px;}
+.footer .nav-logo{justify-content:center;margin-bottom:12px;font-size:1rem;}
+.footer a{color:var(--acc);text-decoration:none;}
+.footer a:hover{text-decoration:underline;}
+.reveal{opacity:0;transform:translateY(30px);transition:.8s cubic-bezier(.2,.7,.2,1);}
+.reveal.in{opacity:1;transform:none;}
+
+:root { --surface-shadow: 0 24px 70px rgba(0,0,0,.28); --ease-premium: cubic-bezier(.2,.75,.25,1); }
+html { scroll-padding-top: 24px; }
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; background-attachment: fixed; }
+::selection { background: rgba(99,102,241,.35); color: var(--text); }
+button, input, a { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, input:focus-visible, .faq-q:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
+.navbar { min-height: 82px; padding: 18px 88px 18px 32px; }
+.container { max-width: 1280px; padding-inline: clamp(18px,3vw,36px); }
+.hero { gap: clamp(30px,5vw,72px); padding-top: clamp(38px,6vw,76px); padding-bottom: clamp(58px,8vw,100px); }
+.hero-title { letter-spacing: -.035em; line-height: 1.12; text-wrap: balance; }
+.btn { min-height: 50px; border-radius: 13px; transition: transform .22s var(--ease-premium), box-shadow .22s var(--ease-premium), border-color .22s, background .22s; }
+.key-card { border-radius: 28px; padding: clamp(22px,3vw,34px); box-shadow: var(--surface-shadow), inset 0 1px 0 rgba(255,255,255,.08); }
+.section { padding: clamp(58px,7vw,92px) 0; }
+.features { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; }
+@media (max-width: 980px) { .hero { grid-template-columns: minmax(0,1fr) minmax(0,.95fr); gap: 28px; } .features { grid-template-columns: repeat(2,minmax(0,1fr)); } .nav-links { gap: 16px; } }
+@media (max-width: 760px) {
+  .navbar { min-height: 72px; padding: 14px 76px 14px 18px; }
+  .nav-links { display: none; }
+  .theme-toggle { top: 12px; right: 16px; width: 44px; height: 44px; font-size: 1.1rem; }
+  .hero { display: flex; flex-direction: column; align-items: stretch; gap: 30px; padding: 36px 0 48px; }
+  .hero-left { text-align: center; }
+  .hero-left .tag { margin-inline: auto; }
+  .hero-stats { justify-content: center; }
+  .hero-cta { justify-content: center; }
+  .features { grid-template-columns: 1fr; }
+  .pricing { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .reveal { opacity: 1; transform: none; }
+}
+</style>
+</head>
+<body>
+
+  <canvas id="matrixCanvas"></canvas>
+  <canvas id="gridCanvas"></canvas>
+
+  <button class="theme-toggle" id="themeBtn" aria-label="Đổi giao diện">
+    <i class="fas fa-moon"></i>
+    <i class="fas fa-sun"></i>
+  </button>
+
+  <nav class="navbar">
+    <div class="nav-logo"><span class="lion">🦁</span><span>KAIRO</span></div>
+    <div class="nav-links"><a href="#features">Tính năng</a><a href="#pricing">Bảng giá</a><a href="#how">Hướng dẫn</a><a href="#faq">FAQ</a></div>
+  </nav>
+
+  <div class="container">
+    <section class="hero">
+      <div class="hero-left">
+        <div class="tag"><span class="dot"></span> Hệ thống đang hoạt động</div>
+        <h1 class="hero-title"><span class="lion-big">🦁</span> <span class="grad">KAIRO</span><br>Truy cập bằng <span class="grad">KEY</span></h1>
+        <p class="hero-desc">Nền tảng <b>tool tự động hóa</b> mạnh mẽ với hệ thống key bảo mật, kích hoạt tức thì qua <b>Telegram Bot</b>. Không đăng ký, không rườm rà — chỉ cần <b>1 key</b> là dùng được ngay.</p>
+        <div class="hero-stats">
+          <div class="stat"><span class="num" data-count="15420">0</span><span class="lbl">Người dùng</span></div>
+          <div class="stat"><span class="num" data-count="98">0</span><span class="lbl">Uptime %</span></div>
+          <div class="stat"><span class="num" data-count="24">0</span><span class="lbl">Hỗ trợ 24/7</span></div>
+        </div>
+        <div class="hero-cta">
+          <a class="btn btn-buy" href="https://t.me/KAIROBOTSHOPV2_BOT" target="_blank" rel="noopener"><i class="fab fa-telegram"></i> Mua Key Ngay</a>
+          <a class="btn btn-ghost" href="#how"><i class="fas fa-circle-play"></i> Xem hướng dẫn</a>
+        </div>
+      </div>
+
+      <div class="key-card">
+        <div class="kc-head"><div class="icon">🦁</div><h2>KÍCH HOẠT KEY</h2><p>Viết key vào cuốn sổ của bạn ✍️</p></div>
+        <div class="msg err" id="msgBox"></div>
+        <form id="formKey" autocomplete="off" novalidate>
+          <div class="notebook">
+            <div class="spiral" aria-hidden="true"><span class="ring"></span><span class="ring"></span><span class="ring"></span><span class="ring"></span><span class="ring"></span><span class="ring"></span><span class="ring"></span><span class="ring"></span></div>
+            <div class="paper">
+              <div class="glow" aria-hidden="true"></div>
+              <div class="paper-head"><div class="title">My Secret Key</div><div class="badge">KAIRO</div></div>
+              <div class="field">
+                <i class="fas fa-pen-fancy"></i>
+                <input type="text" id="keyInput" placeholder="viết key ở đây..." spellcheck="false" autocomplete="off">
+                <button type="button" class="eye" id="pasteBtn" title="Dán key"><i class="fas fa-paste"></i> Dán</button>
+              </div>
+            </div>
+            <div class="footnote">~ ghi nhớ & giữ bí mật nhé ~</div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-submit-outer" id="btnSubmit"><i class="fas fa-unlock-keyhole"></i> Kích Hoạt Ngay</button>
+        </form>
+        <div class="divider">HOẶC</div>
+        <a class="btn btn-buy" href="https://t.me/KAIROBOTSHOPV2_BOT" target="_blank" rel="noopener" style="width:100%;"><i class="fab fa-telegram"></i> Mua Key Tại @KAIROBOTSHOPV2_BOT</a>
+        <div class="hint"><i class="fas fa-circle-info"></i> Bot hỗ trợ <b>mua key</b> & <b>kích hoạt trực tiếp</b> cho web này.</div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="section-head reveal">
+        <div class="eyebrow">// TÍNH NĂNG</div>
+        <h2>Tại sao chọn <span class="grad">KAIRO 🦁</span>?</h2>
+        <p>Được xây dựng với hiệu năng tối đa và bảo mật đa lớp</p>
+      </div>
+      <div class="features">
+        <div class="feature reveal"><div class="f-icon"><i class="fas fa-bolt"></i></div><h3>Tốc độ cực nhanh</h3><p>Xử lý song song, phản hồi dưới 50ms. Trải nghiệm không độ trễ.</p></div>
+        <div class="feature reveal"><div class="f-icon"><i class="fas fa-shield-halved"></i></div><h3>Bảo mật đa lớp</h3><p>Mã hóa key 2 chiều, xác thực server-side, chống leak & share key.</p></div>
+        <div class="feature reveal"><div class="f-icon"><i class="fas fa-robot"></i></div><h3>Bot Telegram</h3><p>Mua key & kích hoạt 24/7 qua <b>@KAIROBOTSHOPV2_BOT</b>, tự động 100%.</p></div>
+        <div class="feature reveal"><div class="f-icon"><i class="fas fa-infinity"></i></div><h3>Cập nhật liên tục</h3><p>Tool được cập nhật hằng tuần, tương thích mọi nền tảng.</p></div>
+        <div class="feature reveal"><div class="f-icon"><i class="fas fa-headset"></i></div><h3>Hỗ trợ 24/7</h3><p>Đội ngũ admin luôn online qua Telegram, phản hồi trong 5 phút.</p></div>
+        <div class="feature reveal"><div class="f-icon"><i class="fas fa-gauge-high"></i></div><h3>Hiệu năng tối ưu</h3><p>Chạy mượt trên mọi thiết bị, tối ưu cho cả mobile & desktop.</p></div>
+      </div>
+    </section>
+
+    <section class="section" id="pricing">
+      <div class="section-head reveal">
+        <div class="eyebrow">// BẢNG GIÁ</div>
+        <h2>Chọn gói <span class="grad">phù hợp</span></h2>
+        <p>Thanh toán qua bot, nhận key tức thì</p>
+      </div>
+      <div class="pricing">
+        <div class="plan reveal">
+          <div class="plan-name">Cơ Bản</div>
+          <div class="plan-price">30K<span>/key</span></div>
+          <div class="plan-dur">// 7 NGÀY</div>
+          <ul><li><i class="fas fa-check"></i> Dùng đầy đủ tính năng</li><li><i class="fas fa-check"></i> Hỗ trợ qua Telegram</li><li><i class="fas fa-check"></i> Kích hoạt tức thì</li></ul>
+          <a class="btn btn-ghost" href="https://t.me/KAIROBOTSHOPV2_BOT" target="_blank" rel="noopener"><i class="fab fa-telegram"></i> Mua ngay</a>
+        </div>
+        <div class="plan featured reveal">
+          <div class="plan-name">Nâng Cao</div>
+          <div class="plan-price">80K<span>/key</span></div>
+          <div class="plan-dur">// 30 NGÀY</div>
+          <ul><li><i class="fas fa-check"></i> Tất cả gói Cơ Bản</li><li><i class="fas fa-check"></i> Ưu tiên hỗ trợ</li><li><i class="fas fa-check"></i> Cập nhật sớm nhất</li><li><i class="fas fa-check"></i> Không giới hạn sử dụng</li></ul>
+          <a class="btn btn-primary" href="https://t.me/KAIROBOTSHOPV2_BOT" target="_blank" rel="noopener"><i class="fas fa-crown"></i> Mua ngay</a>
+        </div>
+        <div class="plan reveal">
+          <div class="plan-name">Vĩnh Viễn</div>
+          <div class="plan-price">200K<span>/key</span></div>
+          <div class="plan-dur">// KHÔNG GIỚI HẠN</div>
+          <ul><li><i class="fas fa-check"></i> Tất cả gói Nâng Cao</li><li><i class="fas fa-check"></i> Key không hết hạn</li><li><i class="fas fa-check"></i> VIP support riêng</li><li><i class="fas fa-check"></i> Truy cập beta sớm</li></ul>
+          <a class="btn btn-ghost" href="https://t.me/KAIROBOTSHOPV2_BOT" target="_blank" rel="noopener"><i class="fab fa-telegram"></i> Mua ngay</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="how">
+      <div class="section-head reveal">
+        <div class="eyebrow">// HƯỚNG DẪN</div>
+        <h2>3 bước để <span class="grad">bắt đầu</span></h2>
+        <p>Chỉ mất chưa tới 1 phút</p>
+      </div>
+      <div class="steps">
+        <div class="step reveal"><div class="s-icon"><i class="fab fa-telegram"></i></div><h3>Mở bot Telegram</h3><p>Truy cập <b>@KAIROBOTSHOPV2_BOT</b> và chọn gói key bạn muốn mua.</p></div>
+        <div class="step reveal"><div class="s-icon"><i class="fas fa-credit-card"></i></div><h3>Thanh toán</h3><p>Thanh toán qua bot, nhận key qua tin nhắn trong vòng vài giây.</p></div>
+        <div class="step reveal"><div class="s-icon"><i class="fas fa-key"></i></div><h3>Kích hoạt</h3><p>Viết key vào cuốn sổ phía trên và truy cập tool ngay lập tức.</p></div>
+      </div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="section-head reveal">
+        <div class="eyebrow">// FAQ</div>
+        <h2>Câu hỏi <span class="grad">thường gặp</span></h2>
+        <p>Không tìm thấy câu trả lời? Liên hệ admin qua Telegram</p>
+      </div>
+      <div class="faq">
+        <div class="faq-item"><div class="faq-q">Key là gì và dùng để làm gì? <i class="fas fa-chevron-down"></i></div><div class="faq-a">Key là mã kích hoạt dùng một lần (hoặc nhiều lần tùy gói), được cấp qua bot Telegram. Bạn dùng key để truy cập vào tool mà không cần đăng ký tài khoản.</div></div>
+        <div class="faq-item"><div class="faq-q">Làm sao để mua key? <i class="fas fa-chevron-down"></i></div><div class="faq-a">Truy cập bot <b>@KAIROBOTSHOPV2_BOT</b> trên Telegram, chọn gói, thanh toán và nhận key ngay trong khung chat.</div></div>
+        <div class="faq-item"><div class="faq-q">Key dùng được cho nhiều thiết bị không? <i class="fas fa-chevron-down"></i></div><div class="faq-a">Tùy vào gói bạn mua. Gói cơ bản giới hạn 1 thiết bị, gói nâng cao & vĩnh viễn hỗ trợ đa thiết bị. Chi tiết xem trong bot.</div></div>
+        <div class="faq-item"><div class="faq-q">Key bị lỗi thì xử lý thế nào? <i class="fas fa-chevron-down"></i></div><div class="faq-a">Liên hệ ngay admin <b>@tranhoang2286</b> trên Telegram để được hỗ trợ đổi key hoặc hoàn tiền nếu lỗi từ hệ thống.</div></div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="footer">
+    <div class="nav-logo"><span class="lion">🦁</span><span>KAIRO</span></div>
+    <p>© 2025 KAIRO🦁. Admin: <a href="https://t.me/tranhoang2286" target="_blank">@tranhoang2286</a> · Bot: <a href="https://t.me/KAIROBOTSHOPV2_BOT" target="_blank">@KAIROBOTSHOPV2_BOT</a></p>
+  </footer>
+
+<div class="toast" id="toast"><i class="fas fa-circle-check"></i><span id="toastText"></span></div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function getDeviceId() {
+  let id = localStorage.getItem('kairo_device_id');
+  if (!id) {
+    id = 'dev_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    localStorage.setItem('kairo_device_id', id);
+  }
+  return id;
+}
+
+function toast(msg, type='ok'){
+  const t = $('toast'); $('toastText').textContent = msg;
+  const ic = t.querySelector('i');
+  ic.className = type==='ok' ? 'fas fa-circle-check' : 'fas fa-circle-exclamation';
+  ic.style.color = type==='ok' ? '#22c55e' : '#ef4444';
+  t.classList.add('show'); clearTimeout(t._t);
+  t._t = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+function showMsg(txt, type='err'){
+  const el = $('msgBox');
+  el.innerHTML = '<i class="fas fa-' + (type==='ok'?'circle-check':'circle-exclamation') + '"></i> ' + txt;
+  el.className = 'msg show ' + type;
+}
+function hideMsg(){ $('msgBox').className = 'msg'; }
+
+if (localStorage.getItem('ht_theme') === 'light') document.body.classList.add('light');
+$('themeBtn').addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  localStorage.setItem('ht_theme', document.body.classList.contains('light') ? 'light' : 'dark');
+});
+
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+  });
+}, { threshold:0.12 });
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+document.querySelectorAll('[data-count]').forEach(el=>{
+  const target = +el.dataset.count;
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if (!e.isIntersecting) return;
+      obs.unobserve(el); let cur = 0;
+      const step = Math.max(1, Math.floor(target / 60));
+      const timer = setInterval(()=>{
+        cur += step;
+        if (cur >= target){ cur = target; clearInterval(timer); }
+        el.textContent = cur.toLocaleString('vi-VN');
+      }, 22);
+    });
+  }, { threshold:0.5 });
+  obs.observe(el);
+});
+
+document.querySelectorAll('.faq-q').forEach(q=>{
+  q.addEventListener('click', ()=>{
+    const item = q.parentElement;
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  });
+});
+
+$('pasteBtn').addEventListener('click', async ()=>{
+  try {
+    const txt = await navigator.clipboard.readText();
+    if (txt){ $('keyInput').value = txt.trim(); toast('Đã dán key 📋'); }
+    else toast('Clipboard trống','err');
+  } catch(e){ toast('Trình duyệt không cho phép dán tự động','err'); }
+});
+
+$('formKey').addEventListener('submit', async e=>{
+  e.preventDefault();
+  hideMsg();
+  const key = $('keyInput').value.trim();
+  if (!key) return toast('Vui lòng nhập key','err');
+  if (key.length < 8) return showMsg('Key không hợp lệ (quá ngắn)','err');
+  if (!key.startsWith('HT')) return showMsg('Key không đúng định dạng (Phải bắt đầu bằng HT)','err');
+
+  const btn = $('btnSubmit');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner spin"></i> Đang xác thực...';
+
+  try {
+    const r = await fetch('/api/key/activate', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-device-id': getDeviceId()
+      },
+      body: JSON.stringify({ key, device_id: getDeviceId() })
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Key không hợp lệ');
+
+    showMsg('Kích hoạt thành công! Đang chuyển hướng... 🎉','ok');
+    toast('Key hợp lệ ✅');
+    localStorage.setItem('kairo_key', key);
+    setTimeout(()=>{ window.location.href = '/kho.html'; }, 1000);
+  } catch(err){
+    showMsg(err.message || 'Lỗi kết nối server','err');
+    toast(err.message || 'Xác thực thất bại','err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-unlock-keyhole"></i> Kích Hoạt Ngay';
+  }
+});
+
+if (localStorage.getItem('kairo_key')) {
+  window.location.href = '/kho.html';
+}
+</script>
+</body>
+</html>
